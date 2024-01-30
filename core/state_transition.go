@@ -207,7 +207,7 @@ func ApplyMessage(evm *vm.EVM, msg *Message, gp *GasPool) (*ExecutionResult, err
 type StateTransition struct {
 	gp           *GasPool
 	msg          *Message
-	gasRemaining uint64
+	gasRemaining uint64 //
 	initialGas   uint64
 	state        vm.StateDB
 	evm          *vm.EVM

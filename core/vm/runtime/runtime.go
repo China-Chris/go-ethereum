@@ -31,6 +31,9 @@ import (
 
 // Config is a basic type specifying certain configuration flags for running
 // the EVM.
+//Config是一种基本类型，用于指定运行的某些配置标志
+
+// EVM。
 type Config struct {
 	ChainConfig *params.ChainConfig
 	Difficulty  *big.Int
@@ -174,6 +177,11 @@ func Create(input []byte, cfg *Config) ([]byte, common.Address, uint64, error) {
 //
 // Call, unlike Execute, requires a config and also requires the State field to
 // be set.
+// 调用执行由合约地址给定的代码。它将返回
+// EVM的返回值，如果失败则返回错误。
+//
+// 与执行不同，调用需要配置，还需要State字段
+// 设置。
 func Call(address common.Address, input []byte, cfg *Config) ([]byte, uint64, error) {
 	setDefaults(cfg)
 

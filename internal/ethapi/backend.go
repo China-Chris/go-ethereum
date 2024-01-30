@@ -39,6 +39,8 @@ import (
 
 // Backend interface provides the common API services (that are provided by
 // both full and light clients) with access to necessary functions.
+// 后端接口提供通用的API服务（由
+// 全客户端和轻客户端），以访问必要的功能。
 type Backend interface {
 	// General Ethereum API
 	SyncProgress() ethereum.SyncProgress

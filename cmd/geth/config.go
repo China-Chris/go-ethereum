@@ -146,29 +146,34 @@ func loadBaseConfig(ctx *cli.Context) gethConfig {
 }
 
 // makeConfigNode loads geth configuration and creates a blank node instance.
+// makeConfigNode加载geth配置并创建一个空白节点实例。
 func makeConfigNode(ctx *cli.Context) (*node.Node, gethConfig) {
-	cfg := loadBaseConfig(ctx)
-	stack, err := node.New(&cfg.Node)
+	cfg := loadBaseConfig(ctx)        //加载配置文件
+	stack, err := node.New(&cfg.Node) //创建一个空白节点实例
 	if err != nil {
 		utils.Fatalf("Failed to create the protocol stack: %v", err)
 	}
 	// Node doesn't by default populate account manager backends
+	// 节点默认不填充帐户管理器后端
 	if err := setAccountManagerBackends(stack.Config(), stack.AccountManager(), stack.KeyStoreDir()); err != nil {
 		utils.Fatalf("Failed to set account manager backends: %v", err)
 	}
 
-	utils.SetEthConfig(ctx, stack, &cfg.Eth)
-	if ctx.IsSet(utils.EthStatsURLFlag.Name) {
-		cfg.Ethstats.URL = ctx.String(utils.EthStatsURLFlag.Name)
+	utils.SetEthConfig(ctx, stack, &cfg.Eth)   //设置以太坊配置
+	if ctx.IsSet(utils.EthStatsURLFlag.Name) { //如果设置了 --ethstats 参数
+		cfg.Ethstats.URL = ctx.String(utils.EthStatsURLFlag.Name) //设置 cfg.Ethstats.URL
 	}
-	applyMetricConfig(ctx, &cfg)
+	applyMetricConfig(ctx, &cfg) //applyMetricConfig
 
 	return stack, cfg
 }
 
 // makeFullNode loads geth configuration and creates the Ethereum backend.
+// makeFullNode 是一个函数，它的作用是加载 geth 配置并创建以太坊后端。
+// makeFullNode 做了两件事：创建了一个 node.Node 实例，创建了一个 ethapi.Backend(以太坊api接口) 实例。
 func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
-	stack, cfg := makeConfigNode(ctx)
+	stack, cfg := makeConfigNode(ctx) //makeConfigNode 加载node配置并创建一个空白的节点实例
+	// stack 是一个 node.Node 实例，cfg 是一个 gethConfig 实例
 	if ctx.IsSet(utils.OverrideCancun.Name) {
 		v := ctx.Uint64(utils.OverrideCancun.Name)
 		cfg.Eth.OverrideCancun = &v
@@ -177,10 +182,11 @@ func makeFullNode(ctx *cli.Context) (*node.Node, ethapi.Backend) {
 		v := ctx.Uint64(utils.OverrideVerkle.Name)
 		cfg.Eth.OverrideVerkle = &v
 	}
-	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
+	backend, eth := utils.RegisterEthService(stack, &cfg.Eth) //注册以太坊服务
 
 	// Create gauge with geth system and build information
-	if eth != nil { // The 'eth' backend may be nil in light mode
+	// 创建一个带有 geth 系统和构建信息的仪表
+	if eth != nil { // The 'eth' backend may be nil in light mode  在轻节点模式下 eth 后端可能为 nil
 		var protos []string
 		for _, p := range eth.Protocols() {
 			protos = append(protos, fmt.Sprintf("%v/%d", p.Name, p.Version))
@@ -319,8 +325,9 @@ func deprecated(field string) bool {
 	}
 }
 
+// setAccountManagerBackends 是一个函数，它的作用是设置帐户管理器后端。
 func setAccountManagerBackends(conf *node.Config, am *accounts.Manager, keydir string) error {
-	scryptN := keystore.StandardScryptN
+	scryptN := keystore.StandardScryptN //
 	scryptP := keystore.StandardScryptP
 	if conf.UseLightweightKDF {
 		scryptN = keystore.LightScryptN

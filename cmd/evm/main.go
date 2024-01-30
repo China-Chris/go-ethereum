@@ -228,7 +228,7 @@ func init() {
 	app.Commands = []*cli.Command{
 		compileCommand,
 		disasmCommand,
-		runCommand,
+		runCommand, // runCommand is defined in run.go
 		blockTestCommand,
 		stateTestCommand,
 		stateTransitionCommand,

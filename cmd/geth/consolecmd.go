@@ -30,7 +30,7 @@ var (
 	consoleFlags = []cli.Flag{utils.JSpathFlag, utils.ExecFlag, utils.PreloadJSFlag}
 
 	consoleCommand = &cli.Command{
-		Action: localConsole,
+		Action: localConsole, // Start a local geth node and attach a console to it
 		Name:   "console",
 		Usage:  "Start an interactive JavaScript environment",
 		Flags:  flags.Merge(nodeFlags, rpcFlags, consoleFlags),
@@ -67,6 +67,8 @@ JavaScript API. See https://geth.ethereum.org/docs/interacting-with-geth/javascr
 
 // localConsole starts a new geth node, attaching a JavaScript console to it at the
 // same time.
+// localConsole启动一个新的geth节点，在
+// 同时。
 func localConsole(ctx *cli.Context) error {
 	// Create and start the node based on the CLI flags
 	prepare(ctx)

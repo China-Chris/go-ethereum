@@ -1859,13 +1859,15 @@ func SetDNSDiscoveryDefaults(cfg *ethconfig.Config, genesis common.Hash) {
 
 // RegisterEthService adds an Ethereum client to the stack.
 // The second return value is the full node instance.
+// RegisterEthService将一个以太坊客户端添加到堆栈中。
+// 第二个返回值是完整的节点实例。
 func RegisterEthService(stack *node.Node, cfg *ethconfig.Config) (ethapi.Backend, *eth.Ethereum) {
-	backend, err := eth.New(stack, cfg)
+	backend, err := eth.New(stack, cfg) //创建以太坊客户端
 	if err != nil {
 		Fatalf("Failed to register the Ethereum service: %v", err)
 	}
-	stack.RegisterAPIs(tracers.APIs(backend.APIBackend))
-	return backend.APIBackend, backend
+	stack.RegisterAPIs(tracers.APIs(backend.APIBackend)) //注册API
+	return backend.APIBackend, backend                   //返回以太坊客户端 以及API
 }
 
 // RegisterEthStatsService configures the Ethereum Stats daemon and adds it to the node.

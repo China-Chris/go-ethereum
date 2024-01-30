@@ -50,6 +50,7 @@ import (
 
 const (
 	clientIdentifier = "geth" // Client identifier to advertise over the network
+	// clientIdentifier 是用于在网络上进行广告的客户端标识符
 )
 
 var (
@@ -200,9 +201,10 @@ var (
 
 var app = flags.NewApp("the go-ethereum command line interface")
 
+// init 会 初始化CLI应用并启动Geth
 func init() {
 	// Initialize the CLI app and start Geth
-	app.Action = geth
+	app.Action = geth // Geth的主要入口点 app.Action = geth 会调用geth函数
 	app.Commands = []*cli.Command{
 		// See chaincmd.go:
 		initCommand,
@@ -265,7 +267,7 @@ func init() {
 }
 
 func main() {
-	if err := app.Run(os.Args); err != nil {
+	if err := app.Run(os.Args); err != nil { // Run the CLI app
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
@@ -273,6 +275,9 @@ func main() {
 
 // prepare manipulates memory cache allowance and setups metric system.
 // This function should be called before launching devp2p stack.
+// prepare操作内存缓存允许量并设置度量系统。
+// 应该在启动devp2p堆栈之前调用此函数。
+// prepare用于设置一些参数，例如：如果没有设置--cache参数，那么默认的cache大小为1024，如果设置了--cache参数，那么cache大小为设置的值
 func prepare(ctx *cli.Context) {
 	// If we're running a known preset, log it for convenience.
 	switch {
@@ -329,23 +334,28 @@ func prepare(ctx *cli.Context) {
 // geth is the main entry point into the system if no special subcommand is run.
 // It creates a default node based on the command line arguments and runs it in
 // blocking mode, waiting for it to be shut down.
+// 如果没有运行特殊的子命令，geth是进入系统的主要入口点。
+// 它基于命令行参数创建一个默认节点，并在中运行
+// 阻塞模式，等待它关闭。
 func geth(ctx *cli.Context) error {
-	if args := ctx.Args().Slice(); len(args) > 0 {
-		return fmt.Errorf("invalid command: %q", args[0])
+	if args := ctx.Args().Slice(); len(args) > 0 { //这里的args是命令行参数 例如：geth --datadir /home/eth --networkid 1 console
+		return fmt.Errorf("invalid command: %q", args[0]) //如果命令行参数大于0，说明命令行参数不正确，返回错误
 	}
 
-	prepare(ctx)
-	stack, backend := makeFullNode(ctx)
-	defer stack.Close()
+	prepare(ctx)                        //调用prepare函数 Prepare（准备） 用于设置一些参数，例如：如果没有设置--cache参数，那么默认的cache大小为1024，如果设置了--cache参数，那么cache大小为设置的值
+	stack, backend := makeFullNode(ctx) // 创建一个完整的节点
+	defer stack.Close()                 //关闭节点 defer 确保在函数结束时推出
 
-	startNode(ctx, stack, backend, false)
-	stack.Wait()
+	startNode(ctx, stack, backend, false) //启动节点 传入参数：命令行参数，节点，后端，是否是控制台
+	stack.Wait()                          //让节点等待一直阻塞在这里
 	return nil
 }
 
 // startNode boots up the system node and all registered protocols, after which
 // it unlocks any requested accounts, and starts the RPC/IPC interfaces and the
 // miner.
+// startNode启动系统节点和所有注册的协议，之后
+// 它解锁任何请求的帐户，并启动RPC/IPC接口和 矿工。
 func startNode(ctx *cli.Context, stack *node.Node, backend ethapi.Backend, isConsole bool) {
 	debug.Memsize.Add("node", stack)
 

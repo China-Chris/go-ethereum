@@ -52,50 +52,52 @@ type EVMInterpreter struct {
 }
 
 // NewEVMInterpreter returns a new instance of the Interpreter.
+// 返回解释器的一个新实例
 func NewEVMInterpreter(evm *EVM) *EVMInterpreter {
 	// If jump table was not initialised we set the default one.
-	var table *JumpTable
+	// 如果跳转表没有初始化，我们设置默认的跳转表
+	var table *JumpTable // 跳转表 因为eth有很多次升级，所以有很多跳转表 表中存储的是操作码对应的操作
 	switch {
-	case evm.chainRules.IsCancun:
+	case evm.chainRules.IsCancun: // 判断是否是cancun升级
 		table = &cancunInstructionSet
-	case evm.chainRules.IsShanghai:
+	case evm.chainRules.IsShanghai: // 判断是否是shanghai升级
 		table = &shanghaiInstructionSet
-	case evm.chainRules.IsMerge:
+	case evm.chainRules.IsMerge: // 判断是否是merge升级
 		table = &mergeInstructionSet
-	case evm.chainRules.IsLondon:
+	case evm.chainRules.IsLondon: // 判断是否是london升级
 		table = &londonInstructionSet
-	case evm.chainRules.IsBerlin:
+	case evm.chainRules.IsBerlin: // 判断是否是berlin升级
 		table = &berlinInstructionSet
-	case evm.chainRules.IsIstanbul:
+	case evm.chainRules.IsIstanbul: // 判断是否是istanbul升级
 		table = &istanbulInstructionSet
-	case evm.chainRules.IsConstantinople:
+	case evm.chainRules.IsConstantinople: // 判断是否是constantinople升级
 		table = &constantinopleInstructionSet
-	case evm.chainRules.IsByzantium:
+	case evm.chainRules.IsByzantium: // 判断是否是byzantium升级
 		table = &byzantiumInstructionSet
-	case evm.chainRules.IsEIP158:
+	case evm.chainRules.IsEIP158: // 判断是否是eip158升级
 		table = &spuriousDragonInstructionSet
-	case evm.chainRules.IsEIP150:
+	case evm.chainRules.IsEIP150: // 判断是否是eip150升级
 		table = &tangerineWhistleInstructionSet
-	case evm.chainRules.IsHomestead:
+	case evm.chainRules.IsHomestead: // 判断是否是homestead升级
 		table = &homesteadInstructionSet
-	default:
+	default: // 默认是frontierInstructionSet 即最初的跳转表
 		table = &frontierInstructionSet
 	}
-	var extraEips []int
-	if len(evm.Config.ExtraEips) > 0 {
+	var extraEips []int                // 额外的EIPs
+	if len(evm.Config.ExtraEips) > 0 { // 判断是否有额外的EIPs
 		// Deep-copy jumptable to prevent modification of opcodes in other tables
-		table = copyJumpTable(table)
+		table = copyJumpTable(table) // 深度复制跳转表以防止修改其他表中的操作码
 	}
-	for _, eip := range evm.Config.ExtraEips {
-		if err := EnableEIP(eip, table); err != nil {
+	for _, eip := range evm.Config.ExtraEips { // 遍历额外的EIPs
+		if err := EnableEIP(eip, table); err != nil { // 激活EIP
 			// Disable it, so caller can check if it's activated or not
 			log.Error("EIP activation failed", "eip", eip, "error", err)
-		} else {
-			extraEips = append(extraEips, eip)
+		} else { // 激活成功
+			extraEips = append(extraEips, eip) // 添加到额外的EIPs中
 		}
 	}
-	evm.Config.ExtraEips = extraEips
-	return &EVMInterpreter{evm: evm, table: table}
+	evm.Config.ExtraEips = extraEips               // 设置额外的EIPs
+	return &EVMInterpreter{evm: evm, table: table} // 返回解释器
 }
 
 // Run loops and evaluates the contract's code with the given input data and returns
