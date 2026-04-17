@@ -162,44 +162,49 @@ func New(conf *Config) (*Node, error) {
 }
 
 // Start starts all registered lifecycles, RPC services and p2p networking.
+//
+//	Start启动所有注册的生命周期、RPC服务和p2p网络。
+//
 // Node can only be started once.
+//
+//	节点启动  只能启动一次
 func (n *Node) Start() error {
-	n.startStopLock.Lock()
-	defer n.startStopLock.Unlock()
+	n.startStopLock.Lock()         //锁定节点启动
+	defer n.startStopLock.Unlock() //延迟解锁
 
-	n.lock.Lock()
-	switch n.state {
-	case runningState:
+	n.lock.Lock()    //锁定节点状态
+	switch n.state { //根据节点状态执行
+	case runningState: //如果节点状态为运行中 那么返回错误
 		n.lock.Unlock()
-		return ErrNodeRunning
-	case closedState:
+		return ErrNodeRunning //返回错误 节点已经运行
+	case closedState: //如果节点状态为关闭 那么返回错误
 		n.lock.Unlock()
-		return ErrNodeStopped
+		return ErrNodeStopped //返回错误 节点已经关闭
 	}
-	n.state = runningState
+	n.state = runningState //到这里节点已经跑起来了没报错 所以设置节点状态为运行中
 	// open networking and RPC endpoints
-	err := n.openEndpoints()
-	lifecycles := make([]Lifecycle, len(n.lifecycles))
-	copy(lifecycles, n.lifecycles)
-	n.lock.Unlock()
+	err := n.openEndpoints()                           //打开网络和RPC端点
+	lifecycles := make([]Lifecycle, len(n.lifecycles)) //创建生命周期切片
+	copy(lifecycles, n.lifecycles)                     //复制生命周期切片
+	n.lock.Unlock()                                    //解锁节点状态
 
 	// Check if endpoint startup failed.
-	if err != nil {
+	if err != nil { //如果网络和RPC端点启动失败 那么关闭节点
 		n.doClose(nil)
 		return err
 	}
 	// Start all registered lifecycles.
-	var started []Lifecycle
-	for _, lifecycle := range lifecycles {
+	var started []Lifecycle                //创建启动后的生命周期
+	for _, lifecycle := range lifecycles { //遍历生命周期
 		if err = lifecycle.Start(); err != nil {
-			break
+			break //如果生命周期启动失败 那么返回错误
 		}
-		started = append(started, lifecycle)
+		started = append(started, lifecycle) //添加到启动后的生命周期
 	}
 	// Check if any lifecycle failed to start.
 	if err != nil {
-		n.stopServices(started)
-		n.doClose(nil)
+		n.stopServices(started) //停止启动后的生命周期
+		n.doClose(nil)          //关闭节点
 	}
 	return err
 }

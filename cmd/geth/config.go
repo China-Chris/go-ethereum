@@ -221,8 +221,10 @@ func constructDevModeBanner(ctx *cli.Context, cfg gethConfig) string {
 }
 
 // makeFullNode loads geth configuration and creates the Ethereum backend.
-func makeFullNode(ctx *cli.Context) *node.Node {
-	stack, cfg := makeConfigNode(ctx)
+// 加载 geth 配置并创建以太坊后端。
+func makeFullNode(ctx *cli.Context) *node.Node { // 加载 geth 配置并创建以太坊后端。
+	stack, cfg := makeConfigNode(ctx) // 加载 geth 配置并创建以太坊后端。
+	//将几次分叉的区块号设置为配置的区块号 osaka bpo1 bpo2 verkle 分叉的区块号设置为配置的区块号
 	if ctx.IsSet(utils.OverrideOsaka.Name) {
 		v := ctx.Uint64(utils.OverrideOsaka.Name)
 		cfg.Eth.OverrideOsaka = &v
@@ -241,23 +243,26 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	}
 
 	// Start metrics export if enabled.
-	utils.SetupMetrics(&cfg.Metrics)
+	utils.SetupMetrics(&cfg.Metrics) //设置指标系统
 
 	// Setup OpenTelemetry reporting if enabled.
+	//设置OpenTelemetry报告如果启用。
 	if err := tracesetup.SetupTelemetry(cfg.Node.OpenTelemetry, stack); err != nil {
 		utils.Fatalf("failed to setup OpenTelemetry: %v", err)
 	}
 
 	// Add Ethereum service.
-	backend, eth := utils.RegisterEthService(stack, &cfg.Eth)
+	//注册以太坊服务
+	backend, eth := utils.RegisterEthService(stack, &cfg.Eth) //注册以太坊服务 返回以太坊后端和以太坊实例
 
 	// Create gauge with geth system and build information
+	//创建gauge with geth系统和构建信息
 	if eth != nil { // The 'eth' backend may be nil in light mode
-		var protos []string
-		for _, p := range eth.Protocols() {
-			protos = append(protos, fmt.Sprintf("%v/%d", p.Name, p.Version))
+		var protos []string                 //协议列表
+		for _, p := range eth.Protocols() { //遍历协议列表
+			protos = append(protos, fmt.Sprintf("%v/%d", p.Name, p.Version)) //添加协议名称和版本
 		}
-		metrics.NewRegisteredGaugeInfo("geth/info", nil).Update(metrics.GaugeInfoValue{
+		metrics.NewRegisteredGaugeInfo("geth/info", nil).Update(metrics.GaugeInfoValue{ //创建gauge with geth系统和构建信息
 			"arch":      runtime.GOARCH,
 			"os":        runtime.GOOS,
 			"version":   cfg.Node.Version,
@@ -266,50 +271,62 @@ func makeFullNode(ctx *cli.Context) *node.Node {
 	}
 
 	// Configure log filter RPC API.
+	//注册过滤系统
 	filterSystem := utils.RegisterFilterAPI(stack, backend, &cfg.Eth)
 
 	// Configure GraphQL if requested.
+	//注册GraphQL服务  多挂一个http graphql服务 用于查询以太坊数据
 	if ctx.IsSet(utils.GraphQLEnabledFlag.Name) {
 		utils.RegisterGraphQLService(stack, backend, filterSystem, &cfg.Node)
 	}
 	// Add the Ethereum Stats daemon if requested.
+	//注册以太坊统计服务
 	if cfg.Ethstats.URL != "" {
 		utils.RegisterEthStatsService(stack, backend, cfg.Ethstats.URL)
 	}
 	// Configure synchronization override service
+	//注册同步覆盖服务
 	var synctarget common.Hash
+	//如果设置了同步目标 那么设置同步目标
 	if ctx.IsSet(utils.SyncTargetFlag.Name) {
 		target := ctx.String(utils.SyncTargetFlag.Name)
-		if !common.IsHexHash(target) {
-			utils.Fatalf("sync target hash is not a valid hex hash: %s", target)
+		if !common.IsHexHash(target) { //如果同步目标不是有效的十六进制哈希 那么返回错误
+			utils.Fatalf("sync target hash is not a valid hex hash: %s", target) //返回错误 同步目标哈希不是有效的十六进制哈希
 		}
-		synctarget = common.HexToHash(target)
+		synctarget = common.HexToHash(target) //将同步目标转换为十六进制哈希
 	}
-	utils.RegisterSyncOverrideService(stack, eth, synctarget, ctx.Bool(utils.ExitWhenSyncedFlag.Name))
+	utils.RegisterSyncOverrideService(stack, eth, synctarget, ctx.Bool(utils.ExitWhenSyncedFlag.Name)) //注册同步覆盖服务
 
+	//启动开发模式的beacon服务
 	if ctx.IsSet(utils.DeveloperFlag.Name) {
 		// Start dev mode.
+		//创建模拟的beacon服务
 		simBeacon, err := catalyst.NewSimulatedBeacon(ctx.Uint64(utils.DeveloperPeriodFlag.Name), cfg.Eth.Miner.PendingFeeRecipient, eth)
 		if err != nil {
 			utils.Fatalf("failed to register dev mode catalyst service: %v", err)
 		}
+		//注册模拟的beacon服务
 		catalyst.RegisterSimulatedBeaconAPIs(stack, simBeacon)
+		//注册生命周期
 		stack.RegisterLifecycle(simBeacon)
-
+		//打印开发模式的横幅
 		banner := constructDevModeBanner(ctx, cfg)
 		for _, line := range strings.Split(banner, "\n") {
-			log.Warn(line)
+			log.Warn(line) //打印开发模式的横幅
 		}
-	} else if ctx.IsSet(utils.BeaconApiFlag.Name) {
+	} else if ctx.IsSet(utils.BeaconApiFlag.Name) { //如果设置了beacon API标志 那么启动blsync模式
 		// Start blsync mode.
-		srv := rpc.NewServer()
-		srv.RegisterName("engine", catalyst.NewConsensusAPI(eth))
-		blsyncer := blsync.NewClient(utils.MakeBeaconLightConfig(ctx))
-		blsyncer.SetEngineRPC(rpc.DialInProc(srv))
-		stack.RegisterLifecycle(blsyncer)
+		// blisync 是轻客户端模式 只同步区块头 不同步区块体 用于和外部共识客户端交互
+		srv := rpc.NewServer()                                         //创建一个rpc服务器
+		srv.RegisterName("engine", catalyst.NewConsensusAPI(eth))      //注册consensus API
+		blsyncer := blsync.NewClient(utils.MakeBeaconLightConfig(ctx)) //创建一个blsync客户端
+		blsyncer.SetEngineRPC(rpc.DialInProc(srv))                     //设置engine RPC
+		stack.RegisterLifecycle(blsyncer)                              //注册生命周期
 	} else {
 		// Launch the engine API for interacting with external consensus client.
-		err := catalyst.Register(stack, eth)
+		//注册catalyst服务
+		//是正常外挂共识客户端 和blsync 不同 是全节点模式 同步区块体
+		err := catalyst.Register(stack, eth) //注册catalyst服务
 		if err != nil {
 			utils.Fatalf("failed to register catalyst service: %v", err)
 		}

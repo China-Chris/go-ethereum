@@ -48,16 +48,17 @@ import (
 )
 
 // Register adds the engine API and related APIs to the full node.
+// 注册catalyst服务
 func Register(stack *node.Node, backend *eth.Ethereum) error {
-	stack.RegisterAPIs([]rpc.API{
-		newTestingAPI(backend),
+	stack.RegisterAPIs([]rpc.API{ //注册API
+		newTestingAPI(backend), //注册testing API
 		{
-			Namespace:     "engine",
-			Service:       NewConsensusAPI(backend),
-			Authenticated: true,
+			Namespace:     "engine",                 //注册engine API
+			Service:       NewConsensusAPI(backend), //注册consensus API
+			Authenticated: true,                     //注册authenticated API
 		},
 	})
-	return nil
+	return nil //返回nil
 }
 
 const (

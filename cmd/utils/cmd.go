@@ -82,32 +82,34 @@ func Fatalf(format string, args ...interface{}) {
 	os.Exit(1)
 }
 
+// 启动节点
 func StartNode(ctx *cli.Context, stack *node.Node, isConsole bool) {
-	if err := stack.Start(); err != nil {
-		Fatalf("Error starting protocol stack: %v", err)
+	//启动节点
+	if err := stack.Start(); err != nil { //启动节点
+		Fatalf("Error starting protocol stack: %v", err) //返回错误 启动协议栈失败
 	}
-	go func() {
-		sigc := make(chan os.Signal, 1)
-		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM)
-		defer signal.Stop(sigc)
+	go func() { //启动节点
+		sigc := make(chan os.Signal, 1)                      //创建一个信号通道
+		signal.Notify(sigc, syscall.SIGINT, syscall.SIGTERM) //注册信号
+		defer signal.Stop(sigc)                              //停止信号
 
 		minFreeDiskSpace := 2 * ethconfig.Defaults.TrieDirtyCache // Default 2 * 256Mb
-		if ctx.IsSet(MinFreeDiskSpaceFlag.Name) {
-			minFreeDiskSpace = ctx.Int(MinFreeDiskSpaceFlag.Name)
-		} else if ctx.IsSet(CacheFlag.Name) || ctx.IsSet(CacheGCFlag.Name) {
+		if ctx.IsSet(MinFreeDiskSpaceFlag.Name) {                 //如果设置了最小自由磁盘空间标志 那么设置最小自由磁盘空间
+			minFreeDiskSpace = ctx.Int(MinFreeDiskSpaceFlag.Name) //设置最小自由磁盘空间
+		} else if ctx.IsSet(CacheFlag.Name) || ctx.IsSet(CacheGCFlag.Name) { //如果设置了缓存标志 那么设置缓存
 			minFreeDiskSpace = 2 * ctx.Int(CacheFlag.Name) * ctx.Int(CacheGCFlag.Name) / 100
 		}
-		if minFreeDiskSpace > 0 {
-			go monitorFreeDiskSpace(sigc, stack.InstanceDir(), uint64(minFreeDiskSpace)*1024*1024)
+		if minFreeDiskSpace > 0 { //如果最小自由磁盘空间大于0 那么监控自由磁盘空间
+			go monitorFreeDiskSpace(sigc, stack.InstanceDir(), uint64(minFreeDiskSpace)*1024*1024) //监控自由磁盘空间
 		}
 
-		shutdown := func() {
-			log.Info("Got interrupt, shutting down...")
-			go stack.Close()
+		shutdown := func() { //关闭节点
+			log.Info("Got interrupt, shutting down...") //打印日志 收到中断信号 正在关闭...
+			go stack.Close()                            //关闭节点
 			for i := 10; i > 0; i-- {
-				<-sigc
+				<-sigc //等待信号
 				if i > 1 {
-					log.Warn("Already shutting down, interrupt more to panic.", "times", i-1)
+					log.Warn("Already shutting down, interrupt more to panic.", "times", i-1) //打印日志 已经正在关闭 中断更多以崩溃.
 				}
 			}
 			debug.Exit() // ensure trace and CPU profile data is flushed.

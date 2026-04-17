@@ -223,6 +223,6 @@ const (
 // WalletEvent is an event fired by an account backend when a wallet arrival or
 // departure is detected.
 type WalletEvent struct {
-	Wallet Wallet          // Wallet instance arrived or departed
-	Kind   WalletEventType // Event type that happened in the system
+	Wallet Wallet          // Wallet instance arrived or departed wallet 是钱包的实例  arrived or departed 是钱包的到达或离开
+	Kind   WalletEventType // Event type that happened in the system kind 是事件的类型  happened in the system 是事件发生在系统中
 }
