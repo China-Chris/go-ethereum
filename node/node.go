@@ -210,55 +210,58 @@ func (n *Node) Start() error {
 }
 
 // Close stops the Node and releases resources acquired in
+// 结束节点
 // Node constructor New.
+// 结束节点 释放资源
 func (n *Node) Close() error {
-	n.startStopLock.Lock()
-	defer n.startStopLock.Unlock()
+	n.startStopLock.Lock()         //锁定节点启动
+	defer n.startStopLock.Unlock() //延迟解锁
 
-	n.lock.Lock()
-	state := n.state
-	n.lock.Unlock()
-	switch state {
-	case initializingState:
+	n.lock.Lock()    //锁定节点状态
+	state := n.state //获取节点状态
+	n.lock.Unlock()  //解锁节点状态
+	switch state {   //根据节点状态执行
+	case initializingState: //如果节点状态为初始化中 那么返回错误
 		// The node was never started.
-		return n.doClose(nil)
-	case runningState:
+		return n.doClose(nil) //关闭节点
+	case runningState: //如果节点状态为运行中 那么返回错误
 		// The node was started, release resources acquired by Start().
-		var errs []error
-		if err := n.stopServices(n.lifecycles); err != nil {
-			errs = append(errs, err)
+		var errs []error                                     //
+		if err := n.stopServices(n.lifecycles); err != nil { //停止生命周期
+			errs = append(errs, err) //添加到错误切片
 		}
-		return n.doClose(errs)
-	case closedState:
-		return ErrNodeStopped
-	default:
-		panic(fmt.Sprintf("node is in unknown state %d", state))
+		return n.doClose(errs) //关闭节点
+	case closedState: //如果节点状态为关闭 那么返回错误
+		return ErrNodeStopped //返回错误 节点已经关闭
+	default: //如果节点状态为未知 那么崩溃
+		panic(fmt.Sprintf("node is in unknown state %d", state)) //崩溃 节点状态未知
 	}
 }
 
 // doClose releases resources acquired by New(), collecting errors.
+// doclose 是运行中节点关闭的方法
 func (n *Node) doClose(errs []error) error {
 	// Close databases. This needs the lock because it needs to
 	// synchronize with OpenDatabase*.
-	n.lock.Lock()
-	n.state = closedState
-	errs = append(errs, n.closeDatabases()...)
-	n.lock.Unlock()
+	n.lock.Lock()                              //锁定节点状态
+	n.state = closedState                      //设置节点状态为关闭
+	errs = append(errs, n.closeDatabases()...) //添加到错误切片
+	n.lock.Unlock()                            //解锁节点状态
 
-	if err := n.accman.Close(); err != nil {
-		errs = append(errs, err)
+	if err := n.accman.Close(); err != nil { //关闭账户管理
+		errs = append(errs, err) //添加到错误切片
 	}
 	if n.keyDirTemp {
-		if err := os.RemoveAll(n.keyDir); err != nil {
-			errs = append(errs, err)
+		if err := os.RemoveAll(n.keyDir); err != nil { //删除临时密钥目录
+			errs = append(errs, err) //添加到错误切片
 		}
 	}
 
 	// Release instance directory lock.
-	n.closeDataDir()
+	n.closeDataDir() //释放实例目录锁
 
 	// Unblock n.Wait.
-	close(n.stop)
+	close(n.stop) //关闭节点停止通道
 
 	// Report any errors that might have occurred.
 	switch len(errs) {
